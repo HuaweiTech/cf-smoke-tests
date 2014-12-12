@@ -66,8 +66,7 @@ Below is an example `integration_config.json`:
   "use_existing_org"   : false,
   "use_existing_space" : false,
   "logging_app"        : "",
-  "runtime_app"        : "",
-  "uri_scheme_https"   : false
+  "runtime_app"        : ""
 }
 ```
 
