@@ -22,14 +22,19 @@ var _ = Describe("Runtime:", func() {
 	var testConfig = smoke.GetConfig()
 	var appName string
 	var appUrl string
+	var schemeName string
 
 	BeforeEach(func() {
 		appName = testConfig.RuntimeApp
 		if appName == "" {
 			appName = generator.RandomName()
 		}
-
-		appUrl = "http://" + appName + "." + testConfig.AppsDomain
+		
+		schemeName = "http://"
+		if testConfig.UseHttps {
+			schemeName= "https://"
+		}
+		appUrl = schemeName + appName + "." + testConfig.AppsDomain
 	})
 
 	AfterEach(func() {
