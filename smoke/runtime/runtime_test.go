@@ -22,19 +22,14 @@ var _ = Describe("Runtime:", func() {
 	var testConfig = smoke.GetConfig()
 	var appName string
 	var appUrl string
-	var schemeName string
 
 	BeforeEach(func() {
 		appName = testConfig.RuntimeApp
 		if appName == "" {
 			appName = generator.RandomName()
 		}
-		
-		schemeName = "http://"
-		if testConfig.UseHttps {
-			schemeName= "https://"
-		}
-		appUrl = schemeName + appName + "." + testConfig.AppsDomain
+
+		appUrl = "https://" + appName + "." + testConfig.AppsDomain
 	})
 
 	AfterEach(func() {
@@ -44,7 +39,11 @@ var _ = Describe("Runtime:", func() {
 	It("can be pushed, scaled and deleted", func() {
 		Expect(cf.Cf("push", appName, "-p", SIMPLE_RUBY_APP_BITS_PATH).Wait(CF_PUSH_TIMEOUT_IN_SECONDS)).To(Exit(0))
 
-		Expect(runner.Curl(appUrl).Wait(CF_TIMEOUT_IN_SECONDS)).To(Say("It just needed to be restarted!"))
+		if testConfig.SkipSSLValidation {
+			Expect(runner.Curl("-k", appUrl).Wait(CF_TIMEOUT_IN_SECONDS)).To(Say("It just needed to be restarted!"))
+		} else {
+			Expect(runner.Curl(appUrl).Wait(CF_TIMEOUT_IN_SECONDS)).To(Say("It just needed to be restarted!"))
+		}
 
 		instances := 2
 		maxAttempts := 30
@@ -64,7 +63,11 @@ var _ = Describe("Runtime:", func() {
 		}, 5).Should(Say("not found"))
 
 		Eventually(func() *Session {
-			return runner.Curl(appUrl).Wait(CF_TIMEOUT_IN_SECONDS)
+			if testConfig.SkipSSLValidation {
+				return runner.Curl("-k", appUrl).Wait(CF_TIMEOUT_IN_SECONDS)
+			} else {
+				return runner.Curl(appUrl).Wait(CF_TIMEOUT_IN_SECONDS)
+			}
 		}, 5).Should(Say("404"))
 	})
 })
@@ -115,8 +118,14 @@ func ExpectAllAppInstancesToBeReachable(appUrl string, instances int, maxAttempt
 
 	branchesSeen := make([]bool, instances)
 	var sawAll bool
+	var testConfig = smoke.GetConfig()
+	var session *Session
 	for i := 0; i < maxAttempts; i++ {
-		session := runner.Curl(appUrl)
+		if testConfig.SkipSSLValidation {
+			session = runner.Curl("-k", appUrl)
+		} else {
+			session = runner.Curl(appUrl)
+		}
 		Expect(session.Wait(CF_TIMEOUT_IN_SECONDS)).To(Exit(0))
 
 		output := string(session.Out.Contents())
