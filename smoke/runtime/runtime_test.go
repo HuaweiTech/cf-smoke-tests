@@ -28,7 +28,6 @@ var _ = Describe("Runtime:", func() {
 		if appName == "" {
 			appName = generator.RandomName()
 		}
-
 		appUrl = "https://" + appName + "." + testConfig.AppsDomain
 	})
 
